@@ -1,20 +1,26 @@
 var express = require('express');
 var path = require('path');
+var url = require('url');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
 var bodyParser = require('body-parser');
 var passport = require('passport');
+var session = require('express-session');
 var GoogleStrategy = require( 'passport-google-oauth2' ).Strategy;
+var helpers = require('./lib/utils')
 var KEYS = require('./config/config.js');
+
+var LocalStrategy = require('passport-local').Strategy;
 
 var signIn = require('./routes/signIn');
 
 var app = express();
 
-
 app.use(logger('dev'));
 app.use(bodyParser.urlencoded({ extended: true}));
 app.use(bodyParser.json());
+
+app.use(session({ secret: KEYS.SESSION }));
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -29,17 +35,51 @@ app.use(passport.session());
 //   have a database of user records, the complete Google profile is
 //   serialized and deserialized.
 passport.serializeUser(function(user, done) {
-  console.log('serialize');
+  console.log('serialize', user);
   done(null, user);
 });
 
 passport.deserializeUser(function(obj, done) {
-  console.log('deserialize');
+  console.log('deserialize', obj);
   done(null, obj);
 });
 
+// CORS
+// http://enable-cors.org/server_expressjs.html
+// app.use(function(req, res, next) {
+//   res.header('Access-Control-Allow-Origin', '*');
+//   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+//   next();
+// });
+//CORS middleware
+//http://stackoverflow.com/questions/7067966/how-to-allow-cors-in-express-node-js
+var allowCrossDomain = function(req, res, next) {
+  // console.log("domain:", req.method)
+  res.header('access-control-allow-origin', '*');
+  res.header('access-control-allow-methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('access-control-allow-headers', 'Origin, X-Requested-With, content-type, accept');
+  res.header('access-control-max-age', 10); 
+  next();
+};
 
+app.use(allowCrossDomain);
 
+passport.use(new LocalStrategy(
+  function(username, password, done) {
+
+    console.log(username, password)
+    // User.findOne({ username: username }, function(err, user) {
+    //   if (err) { return done(err); }
+    //   if (!user) {
+    //     return done(null, false, { message: 'Incorrect username.' });
+    //   }
+    //   if (!user.validPassword(password)) {
+    //     return done(null, false, { message: 'Incorrect password.' });
+    //   }
+      return done(null, user);
+    // });
+  }
+));
 
 passport.use(new GoogleStrategy({
   clientID: KEYS.GOOGLE_CONSUMER_KEY,
@@ -49,9 +89,11 @@ passport.use(new GoogleStrategy({
 },
   function(request, accessToken, refreshToken, profile, done) {
 
-    console.log(profile);
+    // console.log(profile);
     console.log('INSIDE');
 
+    // request.send('donezo')
+    done(null, 'teser')
     // User.findOrCreate({ googleId: profile.id }, function (err, user) {
     //   return done(err, user);
     // });
@@ -72,13 +114,46 @@ app.get('/auth/google', passport.authenticate('google', {scope: ['profile', 'ema
 //   login page.  Otherwise, the primary route function function will be called,
 //   which, in this example, will redirect the user to the home page.
 app.get( '/auth/google/callback', 
-      passport.authenticate( 'google', { 
-        successRedirect: '/',
-        failureRedirect: '/login'
+      passport.authenticate( 'google', function(err, user) {
+        console.log(user)
       }));
 
+      // passport.authenticate( 'google', { 
+      //   successRedirect: '/',
+      //   failureRedirect: '/login'
+      // }));
+
+app.post('/login', function(req, res) {
+
+  var urlParts = url.parse(req.url, true);          
+  var username = urlParts.query.username;
+  var password = urlParts.query.password;
+
+  helpers.checkUser(username, password);
+
+  res.send('hi');
+
+});
+
+app.post('/signup', function(req, res) {
+
+  var urlParts = url.parse(req.url, true);          
+  var username = urlParts.query.username;
+  var password = urlParts.query.password;
+
+  helpers.addUser(username, password);
+
+  res.send('hi');
+
+});
+
+
 app.get('/login', function(req, res) {
-  res.send('login');
+  console.log('get login: ', req.body);
+
+  res.send('hi');
+
+
 });
 
 app.get('/', function(req, res) {
