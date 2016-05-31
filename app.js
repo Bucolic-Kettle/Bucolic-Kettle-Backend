@@ -7,7 +7,7 @@ var bodyParser = require('body-parser');
 var passport = require('passport');
 var session = require('express-session');
 var GoogleStrategy = require( 'passport-google-oauth2' ).Strategy;
-var helpers = require('./lib/utils')
+var helpers = require('./lib/utils');
 var KEYS = require('./config/config.js');
 
 var LocalStrategy = require('passport-local').Strategy;
@@ -129,9 +129,16 @@ app.post('/login', function(req, res) {
   var username = urlParts.query.username;
   var password = urlParts.query.password;
 
-  helpers.checkUser(username, password);
+  helpers.checkUser(username, password, function(user) {
+      
+    if (user) {
+      // req.session.user = user; 
+      res.status(200).send(user);
+    } else {
+      res.status(403).send(user);
+    }
 
-  res.send('hi');
+  }); 
 
 });
 
@@ -141,24 +148,30 @@ app.post('/signup', function(req, res) {
   var username = urlParts.query.username;
   var password = urlParts.query.password;
 
-  helpers.addUser(username, password);
+  helpers.addUser(username, password, function(user) {
+      
+    if (user) {
+      // req.session.user = user; 
+      console.log('sending good:', user)
+      res.status(200).send({auth: true, username: user});
+    } else {
+      console.log('sending bad:', user)
+      res.status(400).send(user);
+    }
 
-  res.send('hi');
+  }); 
+
+
+});
+
+app.get('/guest', function(req, res) {
+
+  res.status(200).send({auth: true, username: 'guest'});
 
 });
 
 
-app.get('/login', function(req, res) {
-  console.log('get login: ', req.body);
 
-  res.send('hi');
-
-
-});
-
-app.get('/', function(req, res) {
-  res.send('home');
-});
 
 app.use(function(req, res, next) {
   var err = new Error('Not Found');
