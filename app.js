@@ -10,6 +10,9 @@ var GoogleStrategy = require( 'passport-google-oauth2' ).Strategy;
 var helpers = require('./lib/utils');
 var KEYS = require('./config/config.js');
 
+var cookieParser = require('cookie-parser');
+
+
 var LocalStrategy = require('passport-local').Strategy;
 
 var signIn = require('./routes/signIn');
@@ -20,120 +23,60 @@ app.use(logger('dev'));
 app.use(bodyParser.urlencoded({ extended: true}));
 app.use(bodyParser.json());
 
-app.use(session({ secret: KEYS.SESSION }));
+app.use(cookieParser());
 
-app.use(passport.initialize());
-app.use(passport.session());
+app.use(session({
+  resave: false,
+  saveUninitialized: true,
+  secret: 'sdlfjljrowuroweu',
+  cookie: { httpOnly: false }
+}));
 
-// app.use('/auth/google', signIn);
+// app.use(session({ 
+//   secret: KEYS.SESSION, 
+//   resave: false,
+//   saveUninitialized: true,
+//   cookie: { secure: false } }));
 
-// Passport session setup.
-//   To support persistent login sessions, Passport needs to be able to
-//   serialize users into and deserialize users out of the session.  Typically,
-//   this will be as simple as storing the user ID when serializing, and finding
-//   the user by ID when deserializing.  However, since this example does not
-//   have a database of user records, the complete Google profile is
-//   serialized and deserialized.
-passport.serializeUser(function(user, done) {
-  console.log('serialize', user);
-  done(null, user);
+// http://stackoverflow.com/questions/9071969/using-express-and-node-how-to-maintain-a-session-across-subdomains-hostheaders
+app.use(function(req, res, next) {
+  console.log("INC REQ :", req.session, "body: ", req.body, req.headers.origin)
+
+  res.header('Access-Control-Allow-Credentials', true);
+  res.header('Access-Control-Allow-Origin', req.headers.origin);
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+  res.header('Access-Control-Allow-Headers', 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept');
+  next();
 });
-
-passport.deserializeUser(function(obj, done) {
-  console.log('deserialize', obj);
-  done(null, obj);
-});
-
-// CORS
-// http://enable-cors.org/server_expressjs.html
-// app.use(function(req, res, next) {
-//   res.header('Access-Control-Allow-Origin', '*');
-//   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-//   next();
-// });
 //CORS middleware
 //http://stackoverflow.com/questions/7067966/how-to-allow-cors-in-express-node-js
-var allowCrossDomain = function(req, res, next) {
-  // console.log("domain:", req.method)
-  res.header('access-control-allow-origin', '*');
-  res.header('access-control-allow-methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('access-control-allow-headers', 'Origin, X-Requested-With, content-type, accept');
-  res.header('access-control-max-age', 10); 
-  next();
-};
-
-app.use(allowCrossDomain);
-
-passport.use(new LocalStrategy(
-  function(username, password, done) {
-
-    console.log(username, password)
-    // User.findOne({ username: username }, function(err, user) {
-    //   if (err) { return done(err); }
-    //   if (!user) {
-    //     return done(null, false, { message: 'Incorrect username.' });
-    //   }
-    //   if (!user.validPassword(password)) {
-    //     return done(null, false, { message: 'Incorrect password.' });
-    //   }
-      return done(null, user);
-    // });
-  }
-));
-
-passport.use(new GoogleStrategy({
-  clientID: KEYS.GOOGLE_CONSUMER_KEY,
-  clientSecret: KEYS.GOOGLE_CONSUMER_SECRET,
-  callbackURL: 'http://localhost:8000/auth/google/callback',
-  passReqToCallback: true
-},
-  function(request, accessToken, refreshToken, profile, done) {
-
-    // console.log(profile);
-    console.log('INSIDE');
-
-    // request.send('donezo')
-    done(null, 'teser')
-    // User.findOrCreate({ googleId: profile.id }, function (err, user) {
-    //   return done(err, user);
-    // });
-  }
-));
-
-
-// GET /auth/google
-//   Use passport.authenticate() as route middleware to authenticate the
-//   request.  The first step in Google authentication will involve
-//   redirecting the user to google.com.  After authorization, Google
-//   will redirect the user back to this application at /auth/google/callback
-app.get('/auth/google', passport.authenticate('google', {scope: ['profile', 'email']}));
-
-// GET /auth/google/callback
-//   Use passport.authenticate() as route middleware to authenticate the
-//   request.  If authentication fails, the user will be redirected back to the
-//   login page.  Otherwise, the primary route function function will be called,
-//   which, in this example, will redirect the user to the home page.
-app.get( '/auth/google/callback', 
-      passport.authenticate( 'google', function(err, user) {
-        console.log(user)
-      }));
-
-      // passport.authenticate( 'google', { 
-      //   successRedirect: '/',
-      //   failureRedirect: '/login'
-      // }));
+// var allowCrossDomain = function(req, res, next) {
+//   console.log("INC REQ :", req.session)
+//   res.header('access-control-allow-origin', '*');
+//   res.header('access-control-allow-methods', 'GET, POST, PUT, DELETE, OPTIONS');
+//   res.header('access-control-allow-headers', 'Origin, X-Requested-With, content-type, accept');
+//   res.header('access-control-max-age', 10); 
+//   next();
+// };
 
 app.post('/login', function(req, res) {
 
-  var urlParts = url.parse(req.url, true);          
-  var username = urlParts.query.username;
-  var password = urlParts.query.password;
+  // var urlParts = url.parse(req.url, true);          
+  // var username = urlParts.query.username;
+  // var password = urlParts.query.password;
+
+  var body = JSON.parse(Object.keys(req.body)[0]); // temp hack to get body
+
+  var username = body.username;
+  var password = body. password;
 
   helpers.checkUser(username, password, function(user) {
+      console.log("session :", req.session)
       
     if (user) {
-      // req.session.user = user; 
-      res.status(200).send(user);
+      req.session.user = user.id; 
+      console.log("AFTER: ", req.session)
+      res.status(200).send({auth: true, username: user.username});
     } else {
       res.status(403).send(user);
     }
@@ -144,15 +87,22 @@ app.post('/login', function(req, res) {
 
 app.post('/signup', function(req, res) {
 
-  var urlParts = url.parse(req.url, true);          
-  var username = urlParts.query.username;
-  var password = urlParts.query.password;
+  // var urlParts = url.parse(req.url, true);          
+  // var username = urlParts.query.username;
+  // var password = urlParts.query.password;
+
+
+  var body = JSON.parse(Object.keys(req.body)[0]); // temp hack to get body
+
+  var username = body.username;
+  var password = body. password;
+
 
   helpers.addUser(username, password, function(user) {
+      console.log("sign up :", req.session)
       
     if (user) {
-      // req.session.user = user; 
-      console.log('sending good:', user)
+      req.session.user = user; 
       res.status(200).send({auth: true, username: user});
     } else {
       console.log('sending bad:', user)
@@ -171,6 +121,13 @@ app.get('/guest', function(req, res) {
 });
 
 
+/// test
+app.get('/test', 
+function(req, res) {
+  // req.session.user = '69'; 
+  console.log('CURRENT SESSION: ', req.session);
+  res.status(200).send('done');
+});
 
 
 app.use(function(req, res, next) {
