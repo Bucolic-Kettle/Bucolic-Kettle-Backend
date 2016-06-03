@@ -8,7 +8,7 @@ var passport = require('passport');
 var session = require('express-session');
 var GoogleStrategy = require( 'passport-google-oauth2' ).Strategy;
 var helpers = require('./lib/utils');
-var KEYS = require('./config/config.js');
+// var KEYS = require('./config/config.js');
 
 var cookieParser = require('cookie-parser');
 
@@ -40,7 +40,7 @@ app.use(session({
 
 // http://stackoverflow.com/questions/9071969/using-express-and-node-how-to-maintain-a-session-across-subdomains-hostheaders
 app.use(function(req, res, next) {
-  console.log("INC REQ :", req.session, "body: ", req.body, req.headers.origin)
+  console.log('body: ', req.body);
 
   res.header('Access-Control-Allow-Credentials', true);
   res.header('Access-Control-Allow-Origin', req.headers.origin);
@@ -102,8 +102,8 @@ app.post('/signup', function(req, res) {
       console.log("sign up :", req.session)
       
     if (user) {
-      req.session.user = user; 
-      res.status(200).send({auth: true, username: user});
+      req.session.user = user.id; 
+      res.status(200).send({auth: true, username: user.username});
     } else {
       console.log('sending bad:', user)
       res.status(400).send(user);
@@ -115,6 +115,12 @@ app.post('/signup', function(req, res) {
 });
 
 app.get('/guest', function(req, res) {
+
+  res.status(200).send({auth: true, username: 'guest'});
+
+});
+
+app.get('/checkSession', function(req, res) {
 
   res.status(200).send({auth: true, username: 'guest'});
 

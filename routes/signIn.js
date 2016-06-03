@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var passport = require('passport');
-var GoogleStrategy = require('passport-google-oauth').OAuthStrategy;
+// var GoogleStrategy = require('passport-google-oauth').OAuthStrategy;
 
 // passport.use(new GoogleStrategy({
 //   consumerKey: '275510713543-s4fe85r8t4gc7iqldppjkte6vmlrfirn.apps.googleusercontent.com', //GOOGLE_CONSUMER_KEY,
