@@ -74,7 +74,7 @@ app.post('/login', function(req, res) {
       console.log("session :", req.session)
       
     if (user) {
-      req.session.user = user.id; 
+      req.session.user = user.username;//user.id; 
       console.log("AFTER: ", req.session)
       res.status(200).send({auth: true, username: user.username});
     } else {
@@ -99,13 +99,13 @@ app.post('/signup', function(req, res) {
 
 
   helpers.addUser(username, password, function(user) {
-      console.log("sign up :", req.session)
+      console.log("sign up :", req.session);
       
     if (user) {
-      req.session.user = user.id; 
+      req.session.user = user.username;//user.id; 
       res.status(200).send({auth: true, username: user.username});
     } else {
-      console.log('sending bad:', user)
+      console.log('sending bad:', user);
       res.status(400).send(user);
     }
 
@@ -114,15 +114,44 @@ app.post('/signup', function(req, res) {
 
 });
 
+app.get('/logout', function(req, res) { 
+
+  req.session.destroy();
+
+  res.status(200).send(null);
+
+});
+
+
+
 app.get('/guest', function(req, res) {
 
+  req.session.user = 'guest';//user.id; 
   res.status(200).send({auth: true, username: 'guest'});
 
 });
 
 app.get('/checkSession', function(req, res) {
 
-  res.status(200).send({auth: true, username: 'guest'});
+// console.log('getting req', req.session)
+
+  if (req.session.user !== undefined) {
+    
+    // console.log("A session exists");
+
+    helpers.retrieveSession(req.session.user, function(user) {
+
+// console.log("found ", username)
+      res.status(200).send({auth: true, username: user.username});
+
+    });
+  } else {
+    console.log('No session exists');
+    res.status(200).send(null);
+  
+  }
+
+  //res.status(200).send({auth: true, username: 'guest'});
 
 });
 
